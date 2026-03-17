@@ -238,6 +238,71 @@
   start.setAttribute('role', 'link');
 })();
 
+  (function markActiveNav(){
+  // Normalize current path: strip query/hash, drop trailing slash, drop .html
+  const raw = location.pathname || '/';
+  const path = raw.replace(/[?#].*$/, '')
+                  .replace(/\/index\.html$/i, '/')
+                  .replace(/\.html$/i, '')
+                  .replace(/\/+$/, '') || '/';
+
+  // Turn the path into a "slug" we can map, e.g.:
+  //   "/" -> "home"
+  //   "/index" -> "home"
+  //   "/troops" -> "troops"
+  //   "/magic" -> "magic"
+  //   "/optiona" or "/bear-optiona" -> "optiona"
+  //   "/mystic" -> "mystic"
+  //   "/pvp" -> "pvp"
+  //   "/cb" or "/cb-turrets" -> "cb"
+  const last = path.split('/').filter(Boolean).pop() || '';
+
+  const slug =
+    (!last || last.toLowerCase() === 'index') ? 'home' :
+    (last.toLowerCase() === 'troops')         ? 'troops' :
+    (last.toLowerCase() === 'magic')          ? 'magic'  :
+    (['optiona','bear-optiona'].includes(last.toLowerCase())) ? 'optiona' :
+    (last.toLowerCase() === 'mystic')         ? 'mystic' :
+    (last.toLowerCase() === 'pvp')            ? 'pvp'    :
+    (['cb','cb-turrets'].includes(last.toLowerCase()))        ? 'cb' :
+    'home';
+
+  // Remove previous active state
+  document.querySelectorAll('.nav .nav-links a.is-active')
+    .forEach(a => a.classList.remove('is-active'));
+
+  // Strategy 1: prefer data-tab matching if your anchors have data-tab attributes
+  //   <a href="optiona.html" data-tab="optiona">Bear Option‑A</a>
+  let active = document.querySelector(`.nav .nav-links a[data-tab="${slug}"]`);
+
+  // Strategy 2: if no data-tab match, find by href (supports clean URLs & .html)
+  if (!active) {
+    const candidates = Array.from(document.querySelectorAll('.nav .nav-links a'));
+    active = candidates.find(a => {
+      const href = (a.getAttribute('href') || '').replace(/[?#].*$/, '');
+      // Normalize anchor href similar to "path"
+      const norm = href.replace(/\/index\.html$/i, '/')
+                       .replace(/\.html$/i, '')
+                       .replace(/\/+$/, '')
+                       .toLowerCase();
+      // Compare last segment against our resolved slug map
+      const hLast = norm.split('/').filter(Boolean).pop() || '';
+      if (!slug || slug === 'home') {
+        return norm === '' || norm === '/' || hLast === 'index';
+      }
+      if (slug === 'optiona') {
+        return ['optiona','bear-optiona'].includes(hLast);
+      }
+      if (slug === 'cb') {
+        return ['cb','cb-turrets'].includes(hLast);
+      }
+      return hLast === slug;
+    });
+  }
+
+  if (active) active.classList.add('is-active');
+})();
+
 // ===== [PATCH] Ensure Add Troops + Menu cluster on phones (Menu at right) =====
 (function ensureCtasCluster(){
   const inner = document.querySelector('.nav .nav-inner');
